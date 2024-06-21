@@ -72,6 +72,11 @@ async def load():
 
 
 def load_modules_states():
+    if not os.path.isfile("./settings/module_state.yaml"):
+        with open("./settings/module_state.yaml", "w+") as file:
+            yaml.dump({}, file)
+            return {}
+
     with open("./settings/module_state.yaml", "r") as file:
         return yaml.safe_load(file)
 
@@ -81,7 +86,7 @@ def save_modules_states(state):
         yaml.dump(state, file)
 
 
-def save_modules_descriptions(module_descriptions):
+def save_modules_descriptions(module_descriptions):    
     file_path = "./settings/module_descriptions.yaml"
     with open(file_path, "w+") as f:
         yaml.dump(module_descriptions, f)
