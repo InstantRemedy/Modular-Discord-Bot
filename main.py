@@ -1,8 +1,8 @@
-# Стандартные библиотеки
+# Standart library
 import asyncio
 import os
 
-# Сторонние библиотеки
+# Third-party libraries
 import colorama
 import discord
 import yaml
