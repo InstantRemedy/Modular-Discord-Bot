@@ -1,5 +1,6 @@
-import discord
 from discord.ext import commands
+
+import discord
 
 
 class Dropdown(discord.ui.Select):

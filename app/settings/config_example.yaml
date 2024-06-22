@@ -1,0 +1,14 @@
+byond:
+  host:  # format "0.0.0.0"
+  maps: 
+  port: 
+discord:
+  bot_prefix: '!'
+  case_insensitive: true
+  token: # Your Discord bot token
+openai:
+  api_key: sk-...
+  assistant_id: asst_...
+  org_id: org-...
+  project_id: proj_...
+  thread_id: thread_... # Optional. If you don't have a thread ID, bot will create a new one and save it to this file.

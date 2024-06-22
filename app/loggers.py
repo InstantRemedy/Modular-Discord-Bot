@@ -1,5 +1,10 @@
 import logging
+import os
 from logging.handlers import TimedRotatingFileHandler
+
+
+if os.path.exists("logs") is False:
+    os.mkdir("logs")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -12,6 +17,6 @@ action_logger = logging.getLogger(f"{__name__}_action")
 formatter = logging.Formatter(
     "[%(asctime)s] [%(levelname)s] %(message)s", "%Y-%m-%dT%H:%M:%S%z"
 )
-handler = TimedRotatingFileHandler("actions.log", when="midnight")
+handler = TimedRotatingFileHandler("logs/actions.log", when="midnight")
 handler.setFormatter(formatter)
 action_logger.addHandler(handler)
