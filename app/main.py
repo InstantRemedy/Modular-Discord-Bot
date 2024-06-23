@@ -1,7 +1,7 @@
 from colorama import Fore, Style
 from discord.ext import commands
 
-from loggers import action_logger, logger
+import loggers
 
 # Standart library
 import asyncio
@@ -31,6 +31,7 @@ bot = commands.Bot(
     intents=intents,
 )
 
+logger = loggers.setup_logger("main")
 
 async def load():
     module_states = load_modules_states()
@@ -55,20 +56,11 @@ async def load():
                     cogi = bot.get_cog(module_name.capitalize())
                     # Сохраним его описание в файл из кода
                     module_descriptions[module_name] = cogi.description
-                    logger.info(
-                        Fore.BLUE
-                        + Style.BRIGHT
-                        + "[modules]"
-                        + Style.RESET_ALL
-                        + f" Modules {module_name} working"
-                    )
+                    
+                    logger.info(f"[modules] Modules {module_name} working")
                 except Exception as e:
-                    logger.info(
-                        Fore.RED
-                        + "[modules]"
-                        + Style.RESET_ALL
-                        + f" Not working {module_name}: {e}"
-                    )
+                    logger.error(f"[modules] Modules {module_name} not working => {e}")
+    
     save_modules_descriptions(module_descriptions)
 
 
@@ -95,11 +87,7 @@ def save_modules_descriptions(module_descriptions):
 
 @bot.event
 async def on_ready():
-    logger.info(
-        Fore.GREEN + Style.BRIGHT + f"Logged in as {bot.user.name} (ID: {bot.user.id})"
-    )
-    synced = await bot.tree.sync()
-    logger.info(f"Tree synced: {synced}")
+    logger.info(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
 
 
 @bot.event
@@ -129,7 +117,7 @@ async def loads(ctx, extension):
             await bot.load_extension(f"modules.{extension}")
             _text = f"Модуль {extension} загружен."
             await ctx.send(_text)
-            action_logger.info(_text)
+            logger.info(_text)
         except Exception as e:
             await ctx.send(f"Ошибка при загрузке модуля: {e}")
     else:
@@ -153,7 +141,7 @@ async def unload(ctx, extension):
 
 
 async def main():
-    action_logger.info("Bot started.")
+    logger.info("Bot started.")
     await load()
     await bot.start(config.discord.token)
 

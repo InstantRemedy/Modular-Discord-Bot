@@ -1,11 +1,21 @@
 from discord.ext import commands, tasks
 from .plugins.byond_topic import queryStatus
-from loggers import logger, action_logger
 
+import enum
 import config
 import datetime
 import time
 import discord
+import loggers
+
+logger = loggers.setup_logger("roundstatus")
+
+
+class Gamestate(enum.Enum):
+    STARTUP = 0
+    LOBBY = 1 or 2
+    INGAME = 3
+    ENDGAME = 4
 
 
 class ServerConnector:
@@ -15,9 +25,7 @@ class ServerConnector:
 
     async def query_status(self):
         try:
-            log = f"Trying get query status from {self.host}:{self.port}"
-            logger.info(log)
-            action_logger.info(log)
+            logger.info(f"Trying get query status from {self.host}:{self.port}")
             responseData = await queryStatus(self.host, self.port)
             return responseData
         except ConnectionRefusedError:
@@ -148,7 +156,7 @@ class Roundstatus(commands.Cog):
 
         current_time = int(responseData["round_duration"][0])
         current_gamestate = int(responseData["gamestate"][0])
-
+        
         if not self.init or current_gamestate != self.last_gamestate:
             self.bot.custom_embed = self.create_embed(responseData, current_time, current_gamestate)
             if self.channel_id is not None and not isinstance(self.channel_id, int):

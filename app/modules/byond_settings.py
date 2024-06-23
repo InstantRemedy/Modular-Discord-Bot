@@ -1,8 +1,9 @@
-from loggers import logger
 from discord.ext import commands
 
+import loggers
 import config
 
+logger = loggers.setup_logger("byond_settings")
 
 ALLOWED_ROLE_IDS = [
     1227291822917816402
