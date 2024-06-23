@@ -1,19 +1,32 @@
 # modules/embed_module.py
 from discord.ext import commands
 from loggers import logger, action_logger
+from collections import deque
 
 #openai
-from typing_extensions import override
 from openai import OpenAI, AsyncOpenAI
 from openai.types.beta.assistant import Assistant
 from openai.types.beta.thread import Thread
 
 import config
+import uuid
 
 
 ALLOWED_ROLE_IDS = [
     1227291822917816402
 ]
+
+def info(message):
+    logger.info(f"[AI MODULE] => {message}")
+    action_logger.info(f"[AI MODULE] => {message}")
+
+def warning(message):
+    logger.warning(f"[AI MODULE] => {message}")
+    action_logger.warning(f"[AI MODULE] => {message}")
+    
+def error(message):
+    logger.error(f"[AI MODULE] => {message}")
+    action_logger.error(f"[AI MODULE] => {message}")
 
 
 def check_roles(ctx):
@@ -102,49 +115,58 @@ class Ai(commands.Cog):
         self._ai_handler = OpenAIHandler()
         self._is_switched_on = False
         self._is_active = False # check if the llm is handling a request
-        self._queue: list[dict] = [] # queue for messages
+        self._deque: deque[dict] = deque() # deque for messages
         self._max_requests = 10 # max number of requests that can be handled at the same time
         self._current_requests = 0
         
     @commands.command(name="mind")
     async def promt(self, ctx, *, promt_message: str = ""):
         if not self._is_switched_on:
+            warning(f"{ctx.author.display_name} tried to use the AI module, but it is turned off.")
             return
         if self._current_requests >= self._max_requests:
+            warning(f"{ctx.author.display_name} tried to use the AI module, but the max number of requests is reached.")
             return
         
         self._current_requests += 1
         if not promt_message:
+            info(f"{ctx.author.display_name} requested a empty promt message.")
             response = f"Привет! я {self._ai_handler.assistant_name}. Чего бы {ctx.author.display_name} хотел знать?"
         else:
-            self._queue.append({"ctx": ctx, "promt_message": promt_message})
-            logger.info(f"{ctx.author.display_name} added a message to the queue. Promt: {promt_message}")
+            uuid_str = str(uuid.uuid4())
+            self._deque.append({"uuid": uuid_str, "ctx": ctx, "promt_message": promt_message})
+            info(f"UUID:{uuid_str} => {ctx.author.display_name} added a message to the deque. Promt: {promt_message}")
             if self._is_active:
                 return
             
-            # handle all messages in the queue. 
-            while self._queue: 
+            # handle all messages in the deque. 
+            while len(self._deque) > 0: 
                 self._is_active = True
-                request = self._queue.pop(0)
+                request = self._deque.popleft()
                 current_promt_message = request["promt_message"]
                 current_ctx = request["ctx"]
-                logger.info(f"{current_ctx.author.display_name} is handling a message from the queue. Promt: {promt_message}")
+                uuid_str = request["uuid"]
+                info(f"UUID: {uuid_str} => {current_ctx.author.display_name} is handling a message from the deque. Promt: {promt_message}")
                 async with ctx.typing():
-                    response = await self._ai_handler.get_reponse_message(current_ctx.author.display_name, current_promt_message)
+                    try:
+                        response = await self._ai_handler.get_reponse_message(current_ctx.author.display_name, current_promt_message)
+                    except Exception as ex:
+                        logger.error(f"An error occurred while handling a message from the deque. Error: {ex}")
+                        await current_ctx.reply("Простите, но я не могу ответить на ваш вопрос. Попробуйте позже")
+                        continue
+                    
                     await current_ctx.reply(response)
-                logger.info(f"Response: {response}")
+                info(f"Response: {response}")
 
             
-            logger.info("All messages from the queue are handled.")
+            info("All messages from the deque are handled.")
             self._is_active = False
         
     @commands.command(name="ai_new_thread")
     @commands.check(check_roles)
     async def new_thread(self, ctx):
-        await self._ai_handler.new_thread()
-        log = f"User '{ctx.author.display_name}' created a new thread."
-        logger.info(log)
-        action_logger.info(log)
+        await self._ai_handler.new_thread() 
+        info(f"User '{ctx.author.display_name}' created a new thread.")
         await ctx.reply("Тень ума, что скрыться хочет.")
     
     @commands.check(check_roles)
@@ -156,47 +178,39 @@ class Ai(commands.Cog):
                 f"ai_switch_on - Позволю тебе услышать мои мысли.\n" \
                 f"ai_switch_off - Скрою свои мысли от тебя."
 
-        log = f"User '{ctx.author.display_name}' requested help from the AI module."
-        logger.info(log)
-        action_logger.info(log)
+        info(f"User '{ctx.author.display_name}' requested help from the AI module.")
         await ctx.author.reply(help)
 
     @commands.check(check_roles)
     @commands.command(name="ai_switch_on")
     async def switch_on(self, ctx):
         self._is_switched_on = True
-        log = f"User '{ctx.author.display_name}' turned on the AI module."
-        logger.info(log)
-        action_logger.info(log)
+        info(f"User '{ctx.author.display_name}' turned on the AI module.")
         await ctx.reply("Позволь мне рассказать тебе о моих мыслях.")
 
     @commands.check(check_roles)
     @commands.command(name="ai_switch_off")
     async def switch_off(self, ctx):
         self._is_switched_on = False
-        log = f"User '{ctx.author.display_name}' turned off the AI module."
-        logger.info(log)
-        action_logger.info(log)
+        info(f"User '{ctx.author.display_name}' turned off the AI module.")
         await ctx.reply("Скрою свои мысли от тебя.")
 
     @commands.check(check_roles)
     @commands.command(name="ai_max_requests")
     async def set_max_requests(self, ctx, max_requests: int):
+        uuid_str = str(uuid.uuid4())
+        info(f"UUID: {uuid_str} => User '{ctx.author.display_name}' tried to set the max number of requests to {max_requests}.")
         if max_requests <= 0:
-            raise commands.BadArgument("The number of requests must be greater than 1.")
+            raise commands.BadArgument(f"UUID: {uuid_str} => The number of requests must be greater than 1.")
         self._current_requests = 0
         self._max_requests = max_requests
-        log = f"User '{ctx.author.display_name}' set the max number of requests to {max_requests}."
-        logger.info(log)
-        action_logger.info(log)
+        info(f"UUID: {uuid_str} => User '{ctx.author.display_name}' set the max number of requests to {max_requests}.")
 
     @commands.check(check_roles)
     @commands.command(name="ai_reset_requests")
     async def reset_requests(self, ctx):
         self._current_requests = 0
-        log = f"User '{ctx.author.display_name}' reset the number of requests."
-        logger.info(log)
-        action_logger.info(log)
+        info(f"User '{ctx.author.display_name}' reset the number of requests.")
     
 async def setup(bot):
     await bot.add_cog(Ai(bot))

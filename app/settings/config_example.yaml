@@ -1,6 +1,5 @@
 byond:
   host:  # format "0.0.0.0"
-  maps: 
   port: 
 discord:
   bot_prefix: '!'

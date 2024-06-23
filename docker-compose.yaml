@@ -10,3 +10,4 @@ services:
     restart: always
     volumes:
       - ./settings:/app/settings
+      - ./logs:/app/logs
