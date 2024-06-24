@@ -153,7 +153,7 @@ class Roundstatus(commands.Cog):
 
         current_time = int(responseData["round_duration"][0])
         
-        if responseData["gamestate"][0] == 1 or responseData["gamestate"][0] == 2:
+        if int(responseData["gamestate"][0]) == 1 or int(responseData["gamestate"][0]) == 2:
             current_gamestate = Gamestate.LOBBY
         else:
             current_gamestate = Gamestate(int(responseData["gamestate"][0]))
@@ -161,11 +161,10 @@ class Roundstatus(commands.Cog):
         if not self.init or current_gamestate != self.last_gamestate:
             self.bot.custom_embed = self.create_embed(responseData, current_time, current_gamestate)
             if self.channel_alert is not None:
-                self.bot.custom_embed = self.create_embed(responseData, current_gamestate, current_time)
                 if not self.init and current_gamestate != Gamestate.STARTUP:
                     self.bot.custom_embed_message = await self.channel_alert.send(embed=self.bot.custom_embed)
                     await self.bot.custom_embed_message.edit(embed=self.bot.custom_embed)
-                elif self.current_gamestate == Gamestate.STARTUP and self.channel_alert is not None:
+                elif current_gamestate == Gamestate.STARTUP and self.channel_alert is not None:
                     self.bot.custom_embed_message = await self.channel_alert.send(embed=self.bot.custom_embed)
                     await self.channel_alert.send(
                         f'<@&1227295722123296799> Новый раунд```byond://rockhill-game.ru:51143```'
