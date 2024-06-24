@@ -43,11 +43,11 @@ class ServerConnector:
 
 
 class Roundstatus(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.description = "Checks for round continuity on server."
-        self.channel_alert = 1227292887318925393
-        self.channel_id = 1227292887318925393
+        self.channel_alert = None
+        self.channel_alert_id = 1227292887318925393
         self.last_gamestate = -1337
         self.init = False
         self.is_notification_available_sended = False
@@ -105,8 +105,6 @@ class Roundstatus(commands.Cog):
     
     
     def update_embed(self, embed, responseData, current_time, current_gamestate):
-        round_id = responseData["round_id"][0]  # Получение ID раунда
-
         embed.clear_fields()
         if current_gamestate == 0:
             embed.title = f"Раунд"
@@ -139,7 +137,6 @@ class Roundstatus(commands.Cog):
 
     @tasks.loop(seconds=60.0)
     async def round_checker(self):
-        logger.info("Task Roundstatus launched.")
         try:
             responseData = await ServerConnector(config.byond.host, config.byond.port).query_status()
             self.is_notification_available_sended = False
@@ -151,7 +148,6 @@ class Roundstatus(commands.Cog):
         except ConnectionError:
             return
         except Exception as ex:
-            logger.warning(ex, type(ex))
             return
 
         current_time = int(responseData["round_duration"][0])
@@ -159,15 +155,18 @@ class Roundstatus(commands.Cog):
         
         if not self.init or current_gamestate != self.last_gamestate:
             self.bot.custom_embed = self.create_embed(responseData, current_time, current_gamestate)
-            if self.channel_id is not None and not isinstance(self.channel_id, int):
-                if not hasattr(self.bot, "custom_embed_message"):
-                    self.bot.custom_embed_message = await self.channel_id.send(embed=self.bot.custom_embed)
+            if self.channel_alert is not None:
+                self.bot.custom_embed = self.create_embed(responseData, current_gamestate, current_time)
+                if not self.init and current_gamestate != 0:
+                    self.bot.custom_embed_message = await self.channel_alert.send(embed=self.bot.custom_embed)
+                    await self.bot.custom_embed_message.edit(embed=self.bot.custom_embed)
+                elif self._game_state == 0 and self.channel_alert is not None:
+                    self.bot.custom_embed_message = await self.channel_alert.send(embed=self.bot.custom_embed)
+                    await self.channel_alert.send(
+                        f'<@&1227295722123296799> Новый раунд```byond://rockhill-game.ru:51143```'
+                    )
                 else:
                     await self.bot.custom_embed_message.edit(embed=self.bot.custom_embed)
-            if current_gamestate == 0 and self.channel_alert is not None and not isinstance(self.channel_alert, int):
-                await self.channel_alert.send(
-                    f'<@&1227295722123296799> Новый раунд```byond://rockhill-game.ru:51143```'
-                )
         else:
             self.update_embed(self.bot.custom_embed, responseData, current_time, current_gamestate)
             if hasattr(self.bot, "custom_embed_message"):
@@ -178,8 +177,7 @@ class Roundstatus(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        self.channel_alert = self.bot.get_channel(self.channel_alert)
-        self.channel_id = self.bot.get_channel(self.channel_id)
+        self.channel_alert = self.bot.get_channel(self.channel_alert_id)
         self.round_checker.start()
 
 

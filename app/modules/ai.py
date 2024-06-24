@@ -235,6 +235,11 @@ class Ai(commands.Cog):
     async def _change_status(self, status: Status):
         await self._bot.change_presence(activity=discord.Activity(type=discord.ActivityType.custom, name=status.value))
         logger.info(f"Status was changed to {status.value}")
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        # await self._change_status(Status.OFF)
+        logger.info("AI module is ready.")    
     
 async def setup(bot):
     await bot.add_cog(Ai(bot))
