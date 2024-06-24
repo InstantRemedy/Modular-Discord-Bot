@@ -84,3 +84,43 @@ cd Modular-Discord-Bot
 ```bash
 python3 -m venv .venv
 ```
+
+```bash
+# linux
+source .venv/bin/activate
+```
+
+```powershell
+# windows
+.venv\Scripts\activate
+```
+
+```bash
+pip install -r requirements.txt
+```
+
+```bash
+cd app && python3 main.py
+```
+
+## Configuration
+
+The config_example.yaml file exists in the app/settings directory. Copy it to the same directory or rename it to config.yaml
+
+```yaml
+# config_example.yaml
+
+byond:
+  host:  # format "0.0.0.0"
+  port: 
+discord:
+  bot_prefix: '!'
+  case_insensitive: true
+  token: # Your Discord bot token
+openai:
+  api_key: sk-...
+  assistant_id: asst_...
+  org_id: org-...
+  project_id: proj_...
+  thread_id: thread_... # Optional. If you don't have a thread ID, bot will create a new one and save it to this file.
+```

@@ -1,8 +1,18 @@
+from datetime import datetime
+from colorama import Fore, Style, init
+from pathlib import Path
+
 import logging
 import asyncio
 import aiofiles
-from datetime import datetime
-from colorama import Fore, Style, init
+
+
+if not Path('logs').exists():
+    Path('logs').mkdir()
+
+if not Path('logs/actions.log').exists():
+    with open('logs/actions.log', 'w') as f:
+        pass
 
 # Инициализация colorama
 init(autoreset=True)

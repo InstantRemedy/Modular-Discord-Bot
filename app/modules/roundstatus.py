@@ -102,8 +102,6 @@ class Roundstatus(commands.Cog):
             )
 
         return embed
-
-    
     
     def update_embed(self, embed, responseData, current_time, current_gamestate):
         embed.clear_fields()
