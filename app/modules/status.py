@@ -1,5 +1,5 @@
 import os
-
+import aiofiles
 import discord
 import yaml
 from discord.ext import commands
@@ -9,8 +9,6 @@ class Status(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.description = "I'ma status module!"
-        with open("./settings/module_descriptions.yaml", "r+") as f:
-            self.module_descriptions = yaml.safe_load(f)
 
     @commands.command(name="modstatus")
     async def mod_status(self, ctx):
@@ -20,11 +18,16 @@ class Status(commands.Cog):
 
         modules = [
             f[:-3]
-            for f in os.listdir("./modules")
+            for f in os.listdir("modules")
             if f.endswith(".py") and not f.startswith("_")
         ]
+        
+        async with open("settings/module_descriptions.yaml", "r+") as f:
+            data = await f.read()
+            module_description = yaml.safe_load(data)
+        
         for module in modules:
-            description = self.module_descriptions.get(module, "Nothing")
+            description = module_description.get(module, "Nothing")
             status_emoji = "🟢" if f"modules.{module}" in self.bot.extensions else "🔴"
             embed.add_field(
                 name=f"{status_emoji} {module}", value=description, inline=False

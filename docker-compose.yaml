@@ -1,0 +1,13 @@
+version: '3.0'
+
+services:
+  rockhill_discord_bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rockhill_discord_bot:0.1
+    container_name: rockhill_discord_bot
+    restart: always
+    volumes:
+      - ./settings:/app/settings
+      - ./logs:/app/logs

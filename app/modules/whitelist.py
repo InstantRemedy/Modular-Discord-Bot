@@ -1,8 +1,7 @@
-import os
-
 from discord.ext import commands
 
-from loggers import action_logger, logger
+import loggers
+import os
 
 ALLOWED_ROLE_IDS = [885561160001257593, 1167753949546299433, 1167847850969939969]
 FORBIDDEN_CHARS = [
@@ -33,6 +32,8 @@ FORBIDDEN_CHARS = [
     "=",
     "+",
 ]
+
+logger = loggers.setup_logger("whitelist")
 
 
 def is_allowed_role(ctx):
@@ -75,7 +76,7 @@ class Whitelist(commands.Cog):
             with open(file_path, "a") as f:
                 f.write(name + "\n")
             await ctx.send(f"{name} было отправлено на опыты!")
-            action_logger.warning(f"{ctx.author} добавил {name}")
+            logger.warning(f"{ctx.author} добавил {name}")
 
         elif action == "remove":
             if name + "\n" not in lines:
@@ -86,7 +87,7 @@ class Whitelist(commands.Cog):
                     if line.strip("\n") != name:
                         f.write(line)
             await ctx.send(f"{name} было отправлено в чистилище!")
-            action_logger.warning(f"{ctx.author} удалил {name}")
+            logger.warning(f"{ctx.author} удалил {name}")
 
         else:
             await ctx.send(f"Неизвестное действие: {action}")
