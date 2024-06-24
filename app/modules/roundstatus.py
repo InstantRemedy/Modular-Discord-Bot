@@ -12,6 +12,7 @@ logger = loggers.setup_logger("roundstatus")
 
 
 class Gamestate(enum.Enum):
+    UNKNOWN = -1337
     STARTUP = 0
     LOBBY = 1 or 2
     INGAME = 3
@@ -48,7 +49,7 @@ class Roundstatus(commands.Cog):
         self.description = "Checks for round continuity on server."
         self.channel_alert = None
         self.channel_alert_id = 1227292887318925393
-        self.last_gamestate = -1337
+        self.last_gamestate = Gamestate.UNKNOWN
         self.init = False
         self.is_notification_available_sended = False
     
@@ -71,15 +72,15 @@ class Roundstatus(commands.Cog):
         embed.set_footer(text=footer_text, icon_url=footer_icon)
         embed.set_thumbnail(url="https://media.discordapp.net/attachments/1243587366271189084/1246818328991764530/3xb0si6diyi91_copy.png?ex=665dc58e&is=665c740e&hm=263eb17e934939d411b04341df87f30483162ceb486bc7f5d904feb47c66b963&=&format=webp&quality=lossless")
 
-        if current_gamestate == 0:
+        if current_gamestate == Gamestate.STARTUP:
             embed.title = f"Раунд"
             embed.color = discord.Color.orange()
             embed.add_field(name="Статус", value="Запуск сервера", inline=False)
-        elif current_gamestate == 1 or current_gamestate == 2:
+        elif current_gamestate == Gamestate.LOBBY:
             embed.title = f"Раунд"
             embed.color = discord.Color.blue()
             embed.add_field(name="Статус", value="Лобби", inline=False)
-        elif current_gamestate == 3:
+        elif current_gamestate == Gamestate.INGAME:
             embed.title = f"Раунд"
             embed.color = discord.Color.dark_purple()
             embed.add_field(name="Статус", value="Идёт раунд", inline=False)
@@ -91,7 +92,7 @@ class Roundstatus(commands.Cog):
                 name="Время раунда",
                 value=time.strftime("%H:%M", time.gmtime(current_time)),
             )
-        elif current_gamestate == 4:
+        elif current_gamestate == Gamestate.ENDGAME:
             embed.title = f"Раунд"
             embed.color = discord.Color.dark_magenta()
             embed.add_field(name="Статус", value="Окончание раунда", inline=False)
@@ -106,15 +107,15 @@ class Roundstatus(commands.Cog):
     
     def update_embed(self, embed, responseData, current_time, current_gamestate):
         embed.clear_fields()
-        if current_gamestate == 0:
+        if current_gamestate == Gamestate.STARTUP:
             embed.title = f"Раунд"
             embed.color = discord.Color.orange()
             embed.add_field(name="Статус", value="Запуск сервера", inline=False)
-        elif current_gamestate == 1 or current_gamestate == 2:
+        elif current_gamestate == Gamestate.LOBBY:
             embed.title = f"Раунд"
             embed.color = discord.Color.blue()
             embed.add_field(name="Статус", value="Лобби", inline=False)
-        elif current_gamestate == 3:
+        elif current_gamestate == Gamestate.INGAME:
             embed.title = f"Раунд"
             embed.color = discord.Color.green()
             embed.add_field(name="Статус", value="Идёт раунд", inline=False)
@@ -126,7 +127,7 @@ class Roundstatus(commands.Cog):
                 name="Время раунда",
                 value=time.strftime("%H:%M", time.gmtime(current_time)),
             )
-        elif current_gamestate == 4:
+        elif current_gamestate == Gamestate.ENDGAME:
             embed.title = f"Раунд"
             embed.color = discord.Color.red()
             embed.add_field(name="Статус", value="Окончание раунда", inline=False)
@@ -151,16 +152,20 @@ class Roundstatus(commands.Cog):
             return
 
         current_time = int(responseData["round_duration"][0])
-        current_gamestate = int(responseData["gamestate"][0])
+        
+        if responseData["gamestate"][0] == 1 or responseData["gamestate"][0] == 2:
+            current_gamestate = Gamestate.LOBBY
+        else:
+            current_gamestate = Gamestate(int(responseData["gamestate"][0]))
         
         if not self.init or current_gamestate != self.last_gamestate:
             self.bot.custom_embed = self.create_embed(responseData, current_time, current_gamestate)
             if self.channel_alert is not None:
                 self.bot.custom_embed = self.create_embed(responseData, current_gamestate, current_time)
-                if not self.init and current_gamestate != 0:
+                if not self.init and current_gamestate != Gamestate.STARTUP:
                     self.bot.custom_embed_message = await self.channel_alert.send(embed=self.bot.custom_embed)
                     await self.bot.custom_embed_message.edit(embed=self.bot.custom_embed)
-                elif self._game_state == 0 and self.channel_alert is not None:
+                elif self.current_gamestate == Gamestate.STARTUP and self.channel_alert is not None:
                     self.bot.custom_embed_message = await self.channel_alert.send(embed=self.bot.custom_embed)
                     await self.channel_alert.send(
                         f'<@&1227295722123296799> Новый раунд```byond://rockhill-game.ru:51143```'

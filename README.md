@@ -8,7 +8,7 @@ Bot for managing discord server ss13(Rockhill)
 
 ## Functions
 
-### AI module
+### AI
 
 - [mind]: queries llm and sends a response.
 - [ai_new_thread]: (privileged) runs a new thread.
@@ -18,45 +18,69 @@ Bot for managing discord server ss13(Rockhill)
 - [ai_max_requests]: (privileged) set max requests. Default is 10.
 - [ai_reset_requests]: (privileged) reset requests counter.
 
-### Byond settings module
+### Byond settings
 
 - [setup_host]: (privileged) sets host.
 - [setup_port]: (privileged) sets port.
 
-### Status module1254111603985485887
+### Status module
 
 - [modstatus]: (privileged) show status of modules.
 
 ## Installation
 
-before you start, you need to install the following software:
-
-### Python 3.12
-
-#### Windows/Ubuntu 24.04
-
-- [Python 3.12](https://www.python.org/downloads/release/python-3120/) preferably
-- [Docker](https://docs.docker.com/get-docker/) **if you want to run the bot in a container**
-
-#### Ubuntu 24.04 cmd
+Clone the repository:
 
 ```bash
-apt install -y python3 python3-pip
+git clone https://github.com/InstantRemedy/Modular-Discord-Bot.git
 ```
 
-> before check version of python3 `python3 --version`
-> if version is not 3.12, you need to install it manually. Here is a guide for ubuntu 20.04, but it should work on other versions as well. [Install python 3.12](https://wiki.crowncloud.net/?How_to_Install_Python_3_12_on_Ubuntu_20_04)
+### Docker
+
+```bash
+cd Modular-Discord-Bot
+```
+
+```bash
+docker build -t modular-discord-bot .
+```
+
+```bash
+docker run -d --name modular-discord-bot modular-discord-bot --volume /path/to/config:/app/config --volume /path/to/logs:/app/logs
+```
+
+#### Docker-compose
+
+```bash
+cd Modular-Discord-Bot
+```
+
+```yaml
+version: '3.0'
+
+services:
+  rockhill_discord_bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: modular-discord-bot
+    container_name: modular-discord-bot
+    restart: always
+    volumes:
+      - ./settings:/app/settings
+      - ./logs:/app/logs
+```
+
+```bash
+docker-compose up -d
+```
 
 ### Python virtual environment
 
-### Требования
+```bash
+cd Modular-Discord-Bot
+```
 
-- [Указать требования, например, Python, Node.js, Docker и т. д.]
-- [Указать версии библиотек и фреймворков, например, discord.py, discord.js]
-
-### Шаги установки
-
-1. **Клонируйте репозиторий:**
-
-   ```bash
-   git clone https://github.com/ваш_пользователь/ваш_репозиторий.git
+```bash
+python3 -m venv .venv
+```
