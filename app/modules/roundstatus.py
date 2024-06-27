@@ -68,7 +68,7 @@ class Roundstatus(commands.Cog):
         self.bot = bot
         self.description = "Checks for round continuity on server."
         self.channel_alert = None 
-        self.channel_alert_id = 1254675119914090547
+        self.channel_alert_id = config.channel
         self.last_game_state = GameState.UNKNOWN
         self.init = False
         self.is_notification_available_sended = False
@@ -205,6 +205,7 @@ class Roundstatus(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
+        logger.info(f"Channel is {self.channel_alert_id}")
         self.channel_alert = self.bot.get_channel(self.channel_alert_id)
         self.round_checker.start()
 
