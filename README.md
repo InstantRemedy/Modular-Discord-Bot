@@ -113,17 +113,31 @@ The config_example.yaml file exists in the app/settings directory. Copy it to th
 ```yaml
 # config_example.yaml
 
-byond:
-  host:  # format "0.0.0.0"
-  port: 
-discord:
+discord: # not changeable in runtime
   bot_prefix: '!'
   case_insensitive: true
-  token: # Your Discord bot token
-openai:
-  api_key: sk-...
-  assistant_id: asst_...
-  org_id: org-...
-  project_id: proj_...
-  thread_id: thread_... # Optional. If you don't have a thread ID, bot will create a new one and save it to this file.
+  token: # Discord bot token
+modules: # can change in runtime
+  ai:
+    allowed_roles:
+    - # Discord role ID
+    - # Discord role ID
+    api_key: sk-...
+    assistant_id: asst_...
+    main_role: # Discord role ID
+    org_id: org-...
+    project_id: proj_...
+    thread_id: thread_... # Optional. If you don't have a thread ID, bot will create a new one and save it to this file.
+  round_status:
+    host: # format "0.0.0.0"
+    port:
+    channel: # id channel where bot show status info
+    main_role:
+    allowed_roles:
+  whitelist:
+    main_role: # Discord role ID
+    allowed_roles:
+    - # Discord role ID
+    - # Discord role ID
+    - # Discord role ID
 ```
