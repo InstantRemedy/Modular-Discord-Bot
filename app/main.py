@@ -1,18 +1,11 @@
-from colorama import Fore, Style
 from discord.ext import commands
+from configs import DiscordConfig
 
 import loggers
-
-# Standart library
 import asyncio
-import os
-
-# Local libraries
-import config
-
-# Third-party libraries
 import colorama
 import discord
+import os
 import yaml
 
 
@@ -24,19 +17,21 @@ intents.message_content = True
 intents.messages = True
 intents.members = True
 
+discord_config = DiscordConfig()
+
 # Create an instance of a bot
 bot = commands.Bot(
-    command_prefix=config.discord.bot_prefix,
-    case_insensitive=bool(config.discord.case_insensitive),
+    command_prefix=discord_config.bot_prefix,
+    case_insensitive=bool(discord_config.case_insensitive),
     intents=intents,
 )
 
 logger = loggers.setup_logger("main")
 
+
 async def load():
     module_states = load_modules_states()
     if not module_states:
-        # Если нет файла модулей то первый раз нужно его сделать
         module_states = {}
     module_descriptions = {}
     for filename in os.listdir("./modules"):        
@@ -45,16 +40,12 @@ async def load():
             if module_name == "__init__":
                 continue
             if not module_states.get(module_name):
-                # Все модули загружаются по умолчанию
                 module_states[module_name] = "loaded"
-                # Дампим состояние всех модулей после загрузки каждого
                 save_modules_states(module_states)
             if module_states.get(module_name, "loaded") != "unloaded":
                 try:
                     await bot.load_extension(f"modules.{module_name}")
-                    # Сделаем обработку созданного кога
                     cogi = bot.get_cog(module_name.capitalize())
-                    # Сохраним его описание в файл из кода
                     module_descriptions[module_name] = cogi.description
                     
                     logger.info(f"[modules] Modules {module_name} working")
@@ -94,6 +85,7 @@ async def on_ready():
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         return
+    logger.error(f"Error: {error}")
     raise error
 
 
@@ -143,7 +135,6 @@ async def unload(ctx, extension):
 async def main():
     logger.info("Bot started.")
     await load()
-    await bot.start(config.discord.token)
-
+    await bot.start(discord_config.token)
 
 asyncio.run(main())

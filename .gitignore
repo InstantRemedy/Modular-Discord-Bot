@@ -266,8 +266,10 @@ fabric.properties
 .idea/caches/build_file_checksums.ser
 
 .vscode/
+.idea/
 
 # Bot related files
 /app/settings/module_state.yaml
 /app/settings/config.yaml
 /app/settings/module_descriptions.yaml
+!config.yaml
