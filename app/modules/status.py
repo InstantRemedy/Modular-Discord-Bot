@@ -1,7 +1,7 @@
 import os
-import aiofiles
 import discord
 import yaml
+
 from discord.ext import commands
 
 

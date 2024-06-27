@@ -1,9 +1,10 @@
 from discord.ext import commands
 
+from configs.modules import WhitelistConfig
 import loggers
 import os
 
-ALLOWED_ROLE_IDS = [885561160001257593, 1167753949546299433, 1167847850969939969]
+
 FORBIDDEN_CHARS = [
     "@",
     "/",
@@ -34,10 +35,25 @@ FORBIDDEN_CHARS = [
 ]
 
 logger = loggers.setup_logger("whitelist")
+config = WhitelistConfig()
 
 
-def is_allowed_role(ctx):
-    return any(role.id in ALLOWED_ROLE_IDS for role in ctx.author.roles)
+def check_roles(ctx: commands.Context):
+    if any(role.id == config.main_role for role in ctx.author.roles):
+        return True
+    if any(role.id in config.allowed_roles for role in ctx.author.roles):
+        return True
+    
+    raise commands.CheckFailure(
+        f"User '{ctx.author.display_name}' don't have access to the 'Whitelist' module.")
+
+
+def check_main_role(ctx: commands.Context):
+    if any(role.id == config.main_role for role in ctx.author.roles):
+        return True
+    
+    raise commands.CheckFailure(
+        f"User '{ctx.author.display_name}' don't have access to the 'Whitelist' module.")
 
 
 def contains_forbidden_chars(name):
@@ -49,9 +65,9 @@ class Whitelist(commands.Cog):
         self.bot = bot
         self.description = "I'ma whitelist module!"
 
+    @commands.check(check_roles)
     @commands.command()
-    @commands.check(is_allowed_role)
-    async def whitelist(ctx, action, *, name):
+    async def whitelist(self, ctx, action, *, name):
         current_directory = os.path.dirname(os.path.abspath(__file__))
         file_path = os.path.join(current_directory, "whitelist.txt")
         action = action.lower()
@@ -93,11 +109,23 @@ class Whitelist(commands.Cog):
             await ctx.send(f"Неизвестное действие: {action}")
 
     @whitelist.error
-    async def whitelist_error(ctx, error):
+    async def whitelist_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.CheckFailure):
             await ctx.send("Недостаточно прав для использования этой команды!")
         else:
             await ctx.send("Произошла ошибка!")
+
+    @commands.check(check_main_role)
+    @commands.command(name="wl_add_role")
+    async def add_role(self, ctx: commands.Context, *, role: int):
+        config.add_role(role)
+        await ctx.reply(f"Role {role} added")
+
+    @commands.check(check_main_role)
+    @commands.command(name="wl_remove_role")
+    async def remove_role(self, ctx: commands.Context, *, role: int):
+        config.remove_role(role)
+        await ctx.reply(f"Role {role} removed")
 
 
 async def setup(bot):
