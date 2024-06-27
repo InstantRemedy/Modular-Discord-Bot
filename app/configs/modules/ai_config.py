@@ -9,7 +9,7 @@ class AIConfig:
         self._project_id: str | None = None
         self._thread_id: str | None = None
         self._allowed_roles: list[int] = []
-        self._main_role: int
+        self._main_role: int = int()
         self._load()
 
     def _load(self):

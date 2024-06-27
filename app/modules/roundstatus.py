@@ -27,7 +27,8 @@ def check_main_role(ctx: commands.Context):
     if any(role.id == config.main_role for role in ctx.author.roles):
         return True
     
-    raise commands.CheckFailure(f"User '{ctx.author.display_name}' don't have access to the 'AI' module.")
+    raise commands.CheckFailure(
+        f"User '{ctx.author.display_name}' don't have access to the 'AI' module.")
 
 
 class GameState(enum.Enum):

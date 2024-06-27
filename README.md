@@ -12,16 +12,19 @@ Bot for managing discord server ss13(Rockhill)
 
 - [mind]: queries llm and sends a response.
 - [ai_new_thread]: (privileged) runs a new thread.
-- [ai_help]: (privileged) shows help.
+- [ai_add_role]: (privileged) add user role to privileged.
+- [ai_remove_role]: (privileged) remove user role from privileged.
 - [ai_switch_on]: (privileged) switch on ai.
 - [ai_switch_off]: (privileged) switch off ai.
 - [ai_max_requests]: (privileged) set max requests. Default is 10.
 - [ai_reset_requests]: (privileged) reset requests counter.
 
-### Byond settings
+### Round status settings
 
-- [setup_host]: (privileged) sets host.
-- [setup_port]: (privileged) sets port.
+- [rs_host]: (privileged) sets host.
+- [rs_port]: (privileged) sets port.
+- [rs_add_role]: (privileged) add user role to privileged.
+- [rs_remove_role]: (privileged) remove user role from privileged.
 
 ### Status module
 

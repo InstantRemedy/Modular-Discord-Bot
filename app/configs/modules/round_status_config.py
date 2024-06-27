@@ -17,7 +17,6 @@ class RoundStatusConfig:
         self._channel = cfg.get("channel")
         self._main_role = cfg.get("main_role")
         self._allowed_roles = cfg.get("allowed_roles")
-        self._isLoaded = True
 
     def _save(self):
         config.save_module("round_status", {
