@@ -70,7 +70,7 @@ def save_modules_states(state):
         yaml.dump(state, file)
 
 
-def save_modules_descriptions(module_descriptions):    
+def save_modules_descriptions(module_descriptions):
     file_path = "./settings/module_descriptions.yaml"
     with open(file_path, "w+") as f:
         yaml.dump(module_descriptions, f)

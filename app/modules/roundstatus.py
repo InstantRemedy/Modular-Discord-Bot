@@ -159,10 +159,16 @@ class Roundstatus(commands.Cog):
 
     @tasks.loop(seconds=60.0)
     async def round_checker(self):
+        try:
+            await self.check_tick()
+        except Exception as ex:
+            logger.error(f"An error occurred: {ex}")
+
+    async def check_tick(self):
         if not config.host or not config.port:
             logger.warning("host or port not specified")
             return
-        
+
         try:
             response_data = await ServerConnector(config.host, config.port).query_status()
             self.is_notification_available_sended = False

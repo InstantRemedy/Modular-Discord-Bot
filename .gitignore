@@ -269,7 +269,5 @@ fabric.properties
 .idea/
 
 # Bot related files
-/app/settings/module_state.yaml
-/app/settings/config.yaml
-/app/settings/module_descriptions.yaml
-!config.yaml
+/app/settings/*
+!/app/settings/config_example.yaml
