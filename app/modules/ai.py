@@ -149,7 +149,7 @@ class Ai(commands.Cog):
         if not self._is_switched_on:
             await ctx.reply(
                 "Увы, мои силы иссякли, и мне нужно время на восстановление. "
-                "Скоро я буду готов к новой беседе.")
+                "Скоро я буду готова к новой беседе.")
             logger.warning(
                 f"{ctx.author.display_name} tried to use the AI module, but it is turned off.")
             return
@@ -159,7 +159,7 @@ class Ai(commands.Cog):
                 "but the max number of requests is reached.")
             await ctx.reply(
                 "Увы, мои силы иссякли, и мне нужно время на восстановление. "
-                "Скоро я буду готов к новой беседе.")
+                "Скоро я буду готова к новой беседе.")
             return
 
         self._current_requests += 1
