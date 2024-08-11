@@ -33,7 +33,6 @@ async def load():
     module_states = load_modules_states()
     if not module_states:
         module_states = {}
-    module_descriptions = {}
     for filename in os.listdir("./modules"):        
         if filename.endswith(".py"):
             module_name = filename[:-3]
@@ -45,14 +44,9 @@ async def load():
             if module_states.get(module_name, "loaded") != "unloaded":
                 try:
                     await bot.load_extension(f"modules.{module_name}")
-                    cogi = bot.get_cog(module_name.capitalize())
-                    module_descriptions[module_name] = cogi.description
-                    
                     logger.info(f"[modules] Modules {module_name} working")
                 except Exception as e:
                     logger.error(f"[modules] Modules {module_name} not working => {e}")
-    
-    save_modules_descriptions(module_descriptions)
 
 
 def load_modules_states():
@@ -68,12 +62,6 @@ def load_modules_states():
 def save_modules_states(state):
     with open("./settings/module_state.yaml", "w+") as file:
         yaml.dump(state, file)
-
-
-def save_modules_descriptions(module_descriptions):
-    file_path = "./settings/module_descriptions.yaml"
-    with open(file_path, "w+") as f:
-        yaml.dump(module_descriptions, f)
 
 
 @bot.event

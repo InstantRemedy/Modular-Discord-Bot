@@ -35,7 +35,7 @@ def check_main_role(ctx: commands.Context):
 class GameState(enum.Enum):
     UNKNOWN = -1337
     STARTUP = 0
-    LOBBY = 1 or 2
+    LOBBY = [1, 2]
     IN_GAME = 3
     ENDGAME = 4
 
@@ -78,17 +78,16 @@ class RoundStatus(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.description = "Checks for round continuity on server."
+        self.description = "I'ma roundstatus module!"
 
         self.__channel_alert = None
         self.__channel_alert_id = config.channel
         self.__last_game_state = GameState.UNKNOWN
         self.__init = False
         self.__is_notification_available_sent = False
-        self.__task_loop_running = False
 
     def cog_unload(self):
-        self.__task_loop_running = False
+        self.__task_loop.cancel()
 
     def server_availability(self):
         if self.__is_notification_available_sent:
@@ -96,18 +95,13 @@ class RoundStatus(commands.Cog):
         logger.warning("Сервер выключен.")
         self.__is_notification_available_sent = True
 
-    async def __start_task_loop(self):
-        if not self.__task_loop_running:
-            self.__task_loop_running = True
-            await self.__task_loop()
-
+    @tasks.loop(seconds=60)
     async def __task_loop(self):
-        while self.__task_loop_running:
-            try:
-                await self.__check_tick()
-            except Exception as ex:
-                logger.error(f"An error occurred: {ex}")
-            await asyncio.sleep(60)
+        try:
+            await self.__check_tick()
+        except Exception as ex:
+            logger.error(f"An error occurred: {ex}")
+        await asyncio.sleep(5)
 
     async def __check_tick(self):
         if not config.host or not config.port:
@@ -127,35 +121,32 @@ class RoundStatus(commands.Cog):
         current_time = int(response_data["round_duration"][0])
         game_state_value = int(response_data["gamestate"][0])
 
-        if game_state_value in [1, 2]:
+        if game_state_value in GameState.LOBBY.value:
             current_game_state = GameState.LOBBY
         else:
             current_game_state = GameState(game_state_value)
 
         self.bot.custom_embed = self.__make_embed(
             response_data=response_data,
-            current_game_state=current_game_state,
+            game_state=current_game_state,
             current_time=current_time
         )
 
-        if not self.__init or current_game_state != self.__last_game_state:
-            if not self.__init or (
-                    current_game_state == GameState.STARTUP and current_game_state != self.__last_game_state):
-                self.bot.custom_embed_message = await self.__channel_alert.send(embed=self.bot.custom_embed)
-                await self.__channel_alert.send(
-                    f'<@&1227295722123296799> Новый раунд```byond://rockhill-game.ru:51143```'
-                )
-            else:
-                await self.bot.custom_embed_message.edit(embed=self.bot.custom_embed)
-
-            self.__last_game_state = current_game_state
+        if (not self.__init or
+                (current_game_state == GameState.STARTUP and
+                 current_game_state != self.__last_game_state)):
+            self.bot.custom_embed_message = await self.__channel_alert.send(embed=self.bot.custom_embed)
+            await self.__channel_alert.send(
+                '<@&1227295722123296799> Новый раунд```byond://rockhill-game.ru:51143```'
+            )
             self.__init = True
         else:
-            # Если статус не изменился, просто обновляем embed
             await self.bot.custom_embed_message.edit(embed=self.bot.custom_embed)
 
-    def __make_embed(self, response_data, current_time, current_game_state):
-        if current_game_state == GameState.STARTUP:
+        self.__last_game_state = GameState(current_game_state.value)
+
+    def __make_embed(self, response_data, current_time, game_state):
+        if game_state == GameState.STARTUP:
             embed = self.__embed_template(
                 color=discord.Color.orange()
             ).add_field(
@@ -163,7 +154,7 @@ class RoundStatus(commands.Cog):
                 value="Запуск сервера",
                 inline=False,
             )
-        elif current_game_state == GameState.LOBBY:
+        elif game_state == GameState.LOBBY:
             embed = self.__embed_template(
                 color=discord.Color.blue()
             ).add_field(
@@ -171,7 +162,7 @@ class RoundStatus(commands.Cog):
                 value="Лобби",
                 inline=False,
             )
-        elif current_game_state == GameState.IN_GAME:
+        elif game_state == GameState.IN_GAME:
             embed = self.__embed_template(
                 color=discord.Color.green()
             ).add_field(
@@ -186,7 +177,7 @@ class RoundStatus(commands.Cog):
                 value=time.strftime("%H:%M", time.gmtime(current_time)),
             )
 
-        elif current_game_state == GameState.ENDGAME:
+        elif game_state == GameState.ENDGAME:
             embed = self.__embed_template(
                 color=discord.Color.dark_magenta()
             ).add_field(
@@ -217,7 +208,7 @@ class RoundStatus(commands.Cog):
     async def on_ready(self):
         logger.info(f"Channel is {self.__channel_alert_id}")
         self.__channel_alert = self.bot.get_channel(self.__channel_alert_id)
-        await self.__start_task_loop()
+        self.__task_loop.start()
 
     @commands.check(check_roles)
     @commands.command(name="rs_host")
