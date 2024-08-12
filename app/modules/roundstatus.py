@@ -77,14 +77,13 @@ class RoundStatus(commands.Cog):
                        "263eb17e934939d411b04341df87f30483162ceb486bc7f5d904feb47c66b963&=&format=webp&quality=lossless"
 
     def __init__(self, bot: commands.Bot):
-        self.bot = bot
-        self.description = "I'ma roundstatus module!"
-
-        self.__channel_alert = None
+        self.__bot = bot
         self.__channel_alert_id = config.channel
         self.__last_game_state = GameState.UNKNOWN
         self.__init = False
         self.__is_notification_available_sent = False
+        self.__failed_attempts = 0
+        self.__channel_alert: discord.TextChannel
 
     def cog_unload(self):
         self.__task_loop.cancel()
@@ -95,13 +94,12 @@ class RoundStatus(commands.Cog):
         logger.warning("Сервер выключен.")
         self.__is_notification_available_sent = True
 
-    @tasks.loop(seconds=60)
+    @tasks.loop(seconds=5)
     async def __task_loop(self):
         try:
             await self.__check_tick()
         except Exception as ex:
             logger.error(f"An error occurred: {ex}")
-        await asyncio.sleep(5)
 
     async def __check_tick(self):
         if not config.host or not config.port:
@@ -113,11 +111,19 @@ class RoundStatus(commands.Cog):
             self.__is_notification_available_sent = False
         except ConnectionRefusedError:
             self.server_availability()
+            self.__failed_attempts += 1
+            if self.__failed_attempts >= 5:
+                self.__init = False
+                self.__failed_attempts = 0
             return
         except (ConnectionError, ConnectionResetError, Exception):
+            self.__failed_attempts += 1
+            if self.__failed_attempts >= 5:
+                self.__init = False
+                self.__failed_attempts = 0
             return
 
-        logger.info(f"Response data: {response_data}")
+        self.__failed_attempts = 0
         current_time = int(response_data["round_duration"][0])
         game_state_value = int(response_data["gamestate"][0])
 
@@ -126,74 +132,66 @@ class RoundStatus(commands.Cog):
         else:
             current_game_state = GameState(game_state_value)
 
-        self.bot.custom_embed = self.__make_embed(
+        logger.info(f"Game state: {current_game_state.name}. " 
+                    f"Time: {time.strftime("%H:%M", time.gmtime(current_time))}")
+
+        self.__bot.custom_embed = self.__make_embed(
             response_data=response_data,
             game_state=current_game_state,
             current_time=current_time
         )
-
+        
         if (not self.__init or
                 (current_game_state == GameState.STARTUP and
-                 current_game_state != self.__last_game_state)):
-            self.bot.custom_embed_message = await self.__channel_alert.send(embed=self.bot.custom_embed)
+                 current_game_state != self.__last_game_state and
+                 self.__last_game_state == GameState.ENDGAME)):
+            self.__custom_embed_message = await self.__channel_alert.send(embed=self.__bot.custom_embed)
             await self.__channel_alert.send(
                 '<@&1227295722123296799> Новый раунд```byond://rockhill-game.ru:51143```'
             )
             self.__init = True
         else:
-            await self.bot.custom_embed_message.edit(embed=self.bot.custom_embed)
+            await self.__custom_embed_message.edit(embed=self.__bot.custom_embed)
 
         self.__last_game_state = GameState(current_game_state.value)
 
     def __make_embed(self, response_data, current_time, game_state):
-        if game_state == GameState.STARTUP:
-            embed = self.__embed_template(
-                color=discord.Color.orange()
-            ).add_field(
-                name="Статус",
-                value="Запуск сервера",
-                inline=False,
-            )
-        elif game_state == GameState.LOBBY:
-            embed = self.__embed_template(
-                color=discord.Color.blue()
-            ).add_field(
-                name="Статус",
-                value="Лобби",
-                inline=False,
-            )
-        elif game_state == GameState.IN_GAME:
-            embed = self.__embed_template(
-                color=discord.Color.green()
-            ).add_field(
-                name="Статус",
-                value="Идёт раунд",
-                inline=False,
-            ).add_field(
-                name="Количество игроков",
-                value=response_data["players"][0] + " игрок(ов)",
-            ).add_field(
-                name="Время раунда",
-                value=time.strftime("%H:%M", time.gmtime(current_time)),
-            )
-
-        elif game_state == GameState.ENDGAME:
-            embed = self.__embed_template(
-                color=discord.Color.dark_magenta()
-            ).add_field(
-                name="Статус",
-                value="Окончание раунда",
-                inline=False,
-            ).add_field(
-                name="Раунд завершён",
-                value=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            )
-        else:
-            raise ValueError("Unknown game state")
+        match game_state:
+            case GameState.STARTUP:
+                embed = RoundStatus.__embed_template(
+                    color=discord.Color.orange(),
+                    status="Запуск сервера"
+                )
+            case GameState.LOBBY:
+                embed = RoundStatus.__embed_template(
+                    color=discord.Color.blue(),
+                    status="Лобби"
+                )
+            case GameState.IN_GAME:
+                embed = RoundStatus.__embed_template(
+                    color=discord.Color.green(),
+                    status="Идёт раунд"
+                ).add_field(
+                    name="Количество игроков",
+                    value=response_data["players"][0] + " игрок(ов)",
+                ).add_field(
+                    name="Время раунда",
+                    value=time.strftime("%H:%M", time.gmtime(current_time)),
+                )
+            case GameState.ENDGAME:
+                embed = RoundStatus.__embed_template(
+                    color=discord.Color.dark_magenta(),
+                    status="Окончание раунда"
+                ).add_field(
+                    name="Раунд завершён",
+                    value=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                )
+            case _:
+                raise ValueError("Unknown game state")
 
         return embed
 
-    def __embed_template(self, color) -> discord.embeds.Embed:
+    def __embed_template(color: discord.Colour, status: str) -> discord.embeds.Embed:
         return discord.Embed(
             title="Раунд",
             color=color,
@@ -202,12 +200,20 @@ class RoundStatus(commands.Cog):
             icon_url=RoundStatus.__footer_icon,
         ).set_thumbnail(
             url=RoundStatus.__thumbnail_icon,
+        ).add_field(
+            name="Статус",
+            value=status,
+            inline=False,
         )
+
+    @property
+    def description(self) -> str:
+        return "I'ma roundstatus module!"
 
     @commands.Cog.listener()
     async def on_ready(self):
         logger.info(f"Channel is {self.__channel_alert_id}")
-        self.__channel_alert = self.bot.get_channel(self.__channel_alert_id)
+        self.__channel_alert = self.__bot.get_channel(self.__channel_alert_id)
         self.__task_loop.start()
 
     @commands.check(check_roles)
